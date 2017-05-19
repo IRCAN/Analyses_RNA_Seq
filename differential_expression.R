@@ -2,7 +2,6 @@
 
 ### Analyse de l'expression différentielle par le logiciel DESeq2
 
-
 library(RColorBrewer)
 library(gplots)
 library(limma)
@@ -10,18 +9,13 @@ library(FactoMineR)
 library(dplyr)
 library(ggplot2)
 library(DESeq2)
-source("https://bioconductor.org/biocLite.R")
+#source("https://bioconductor.org/biocLite.R")
 library("AnnotationDbi")
 
 library(pathview)
 library(gage)
 library(gageData)
-biocLite("gage")
-
-
-
-
-
+#biocLite("gage")
 
 
 
@@ -29,8 +23,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 pathoutput=args[1]
 
-if (args[3]=="Mouse"){
-
+if (args[3]=="mm10" | args[3]=="mm9"){
 	library("org.Mm.eg.db")
 	data(kegg.sets.mm)
 	data(sigmet.idx.mm)
@@ -93,7 +86,7 @@ initialisation<-function(condition1,condition2){
   print(condition1)
   print(condition2)
   res1 = results(dds, contrast=c("condition",condition1,condition2), 
-                 cooksCutoff = FALSE, independentFiltering = TRUE) #, lfcThreshold=0.5) ## 1
+                 cooksCutoff = FALSE, independentFiltering = FALSE) #, lfcThreshold=0.5) ## 1
   res1=data.frame(res1)
   res1 = data.frame(Symbol = annotations$GeneId,
                     res1)
@@ -111,15 +104,15 @@ graphics<-function(res1, condition1, condition2){
   points(log2(res1$baseMean)[res1$padj<0.05], 
          res1$log2FoldChange[res1$padj<0.05],
          pch=16, col=2)
-  legend("topright", "Adj-P<0.05", pch=16,col=2)
+  legend("topright", "padj<0.05", pch=16,col=2)
 
   plot(res1$log2FoldChange, -log10(res1$padj), pch=16, 
-       xlab="Log2 FC", ylab="Log10 pvalue", 
+       xlab="Log2 FC", ylab="Log10 padj", 
        main=paste("volcano-plot: ",condition1," vs ",condition2))
   points(res1$log2FoldChange[res1$padj<0.05], 
          -log10(res1$padj)[res1$padj<0.05],
          pch=16, col=2)
-  legend("topleft", "Adj-P<0.05", pch=16,col=2)
+  legend("topleft", "padj<0.05", pch=16,col=2)
 
 }  
   
@@ -160,7 +153,7 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
   file_to_annoted=merge(x = res2, y = allcounts[ , c("GeneId", "gene_name")], by = "GeneId", all.x=TRUE)
 
 
- 
+  print(file_to_annoted$gene_name)
 
   #res1$entrez = select(org.Mm.eg.db, keys=row.names(res1),  column="ENTREZID",keytype="SYMBOL", multiVals="first")
   gggg<-select(org.eg.db, keys=file_to_annoted$gene_name,  column="ENTREZID",keytype="SYMBOL", multiVals="first")
@@ -168,11 +161,11 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 
   file_to_annoted$entrez=gggg$ENTREZID
   file_to_annoted$name = mapIds(org.eg.db, keys=file_to_annoted$gene_name,  column="GENENAME",keytype="SYMBOL",multiVals="first")
-  #file_to_annoted$GO = mapIds(org.eg.db, keys=file_to_annoted$gene_name,  column="GO",keytype="SYMBOL",multiVals="list")
+  file_to_annoted$GO = as.character(mapIds(org.eg.db, keys=file_to_annoted$gene_name,  column="GO",keytype="SYMBOL",multiVals="list"))
   file_to_annoted$UNIPROT=mapIds(org.eg.db, keys=file_to_annoted$gene_name,  column="UNIPROT",keytype="SYMBOL",multiVals="first")
   file_to_annoted$PATH=as.character(mapIds(org.eg.db, keys=file_to_annoted$gene_name,  column="PATH",keytype="SYMBOL",multiVals="list"))
 
-
+  file_to_annoted$GO=gsub("\n","",file_to_annoted$GO)
   print(head(file_to_annoted))
   write.table(file_to_annoted, file=paste("ALL_",condition1,"_vs_",condition2,".xls", sep=""),
               sep="\t", row.names=F)
@@ -181,19 +174,25 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 
   foldchanges = file_to_annoted$log2FoldChange
   names(foldchanges) = file_to_annoted$entrez
-  print(foldchanges)
+
   
   # Get the results
   keggres = gage(foldchanges, gsets=kegg.sets, same.dir=TRUE)
   
   # Look at both up (greater), down (less), and statistics.
   lapply(keggres, head)
-  write.table(keggres$greater, file = "keggres.txt",sep = "\t")
-   
+  write.table(keggres$less, file = "keggresless.txt",sep = "\t")
+  write.table(keggres$greater, file = "keggresgreater.txt",sep = "\t")
+  write.table(keggres, file = "keggres.txt",sep = "\t")
+  a=tbl_df(keggres$greater)
+  b=which(a$q.val < 0.1)
+  keggresId=FALSE
+ if (length(b)>0){
+  keggresId=TRUE
   # Get the pathways upregulate
   keggrespathways = data.frame(id=rownames(keggres$greater), keggres$greater) %>% 
     tbl_df() %>% 
-    filter(row_number()<=5) %>% 
+    filter(row_number()<=length(b)) %>% 
     .$id %>% 
     as.character()
   keggrespathways
@@ -201,20 +200,22 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
   # Get the IDs.
   keggresids = substr(keggrespathways, start=1, stop=8)
   #keggresids
-  
+  }
  
-  
+  if (keggresId==TRUE){
   # plot multiple pathways (plots saved to disk and returns a throwaway list object) !!!!!!!!!!!!!!!!!!!!!!!!!!
 	tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.id=pid, kegg.native =T, same.layer=F, species=idd, min.nnodes = 0, out.suffix=paste(condition1,"_vs_",condition2,"_upregulate_n",match(pid,keggresids), sep="")))
-  
-  
+  }
+  keggresId=FALSE
     
-  
-  
+  a=tbl_df(keggres$less)
+  b=which(a$q.val < 0.1)
+  if (length(b)>0){
+  keggresId=TRUE
   # Get the pathways downregulate
   keggrespathways = data.frame(id=rownames(keggres$less), keggres$less) %>% 
     tbl_df() %>% 
-    filter(row_number()<=5) %>% 
+    filter(row_number()<=length(b)) %>% 
     .$id %>% 
     as.character()
   keggrespathways
@@ -222,11 +223,11 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
   # Get the IDs.
   keggresids = substr(keggrespathways, start=1, stop=8)
   keggresids
-  
-  
-  # plot multiple pathways (plots saved to disk and returns a throwaway list object) !!!!
-  tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.id=pid, kegg.native =T, same.layer=F, species="mmu", min.nnodes = 0, out.suffix=paste(condition1,"_vs_",condition2,"_downregulate_n",match(pid,keggresids), sep="")))
-
+  }
+  if (keggresId==TRUE){
+	  # plot multiple pathways (plots saved to disk and returns a throwaway list object) !!!!
+	  tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.id=pid, kegg.native =T, same.layer=F, species="mmu", min.nnodes = 0, out.suffix=paste(condition1,"_vs_",condition2,"_downregulate_n",match(pid,keggresids), sep="")))
+ }
 }
 
 
@@ -246,7 +247,9 @@ differentialexpression<-function(condition1,condition2){
 
   
   dat=res1[rownames(res1) %in% selected,]
-  
+  write.table(res1, file=paste("No_selection_",condition1,"_vs_",condition2,".xls", sep=""),
+              sep="\t", quote=F, row.names=F)
+
   write.table(res1[rownames(res1) %in% selected,], file=paste(condition1,"_vs_",condition2,".xls", sep=""),
               sep="\t", quote=F, row.names=F)
 

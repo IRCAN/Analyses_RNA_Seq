@@ -1,20 +1,87 @@
+
+
+
+
+Tell if reads are paired-end (if Paired-end=FALSE -> reads = single-end):
+#Do not put space after "="
+>Paired-end =TRUE
+
+Choose your genome:
+#Do not put space after "="
+>Genome =mm10
+
+
+Available genomes:
+Human:	hg37,hg38	Mouse: mm10,mm9
+		
+
+
+
+############################################################################
+#############                                 ##############################
+#############      Differential Expression    ##############################
+#############                                 ##############################
+############################################################################
+
+Expression différentielle =True
+--------Description échantillons---------------
 SampleName	condition	replicat
-MM257_S13	C4	R1
-MM258_S14	C4	R2
-MM279_S6	C2	R1
-MM309_S1	C1	R1
-MM341_S9	C3	R1
-MM343_S10	C3	R2
-MM371_S4	C1	R2
-MM84_S12	C3	R3
-WM2428_S2	C1	R3
-WM2431_S5	C2	R2
-WM2437_S3	C1	R4
-WM2494_S15	C4	R3
-WM3004_S11	C3	R4
-WM3009_S16	C4	R4
-WM3080_S7	C2	R3
-WM3087_S8	C2	R4
--------
-C4 C3
-C2 C1
+MM257_S13	Tert10j	R1
+MM258_S14	Tert10j	R2
+MM279_S6	Tert5j	R1
+MM309_S1	Control5j	R1
+MM341_S9	Control10j	R1
+MM343_S10	Control10j	R2
+MM371_S4	Control5j	R2
+MM84_S12	Control10j	R3
+WM2428_S2	Control5j	R3
+WM2431_S5	Tert5j	R2
+WM2437_S3	Control5j	R4
+WM2494_S15	Tert10j	R3
+WM3004_S11	Control10j	R4
+WM3009_S16	Tert10j	R4
+WM3080_S7	Tert5j	R3
+WM3087_S8	Tert5j	R4
+-----------conditions à tester-------------------
+condition1 condition2
+Tert5j Control5j
+Tert10j Control10j
+-------------------------------------------------
+
+
+###########DO NOT CHANGE ANYTHING UNDER THIS ######################
+
+#########################################################################
+###############                        ##################################
+###############      PATHWAYS          #################################
+###############                        ##################################
+#########################################################################
+
+######STAR###############################################################
+
+STARPATH="/scratch/bin/RNA_Seq/Star"
+
+#####Index STAR##########################################################
+hg37="/scratch/db/genomes/human/index/GrCh37_chr_only"
+hg38="/scratch/db/genomes/human/index/GrCh38_chr_only"
+mm10="/scratch/db/genomes/mus_musculus/index/mm10"
+mm9="/scratch/db/genomes/mus_musculus/index/mm9"
+
+######GENCODE#############################################################
+
+hg37="/home/Share/ftessier/PipelineNGS/gencode.v25lift37.annotation.gtf"
+hg38="/home/Share/ftessier/PipelineNGS/gencode.v25.annotation.gtf"
+mm10="/home/Share/ftessier/PipelineNGS/gencode.vM11.annotation.gtf"
+mm9="/home/Share/ftessier/PipelineNGS/gencode.vM1.annotation.gtf"
+
+#####FEATURECOUNTS########################################################
+FEATURECOUNTSPATH="/scratch/bin/alignment/subread/bin"
+
+######SALMON################################################
+SALMONPATH="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/bin"
+
+####INDEX SALMON#################################################
+hg38="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/transcripts_index_human_Grch38"
+mm10="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/transcripts_index_mouse"
+
+
