@@ -5,6 +5,7 @@
 	Pipeline de RNA-seq permettant:
 	-une pré-analyse de fichiers fastq par analyses des kmer
 	-Un mapping sur le génome choisi, via le logiciel STAR
+	-ou un pseudo-alignement sur le transcriptome, avec le logiciel Salmon
 	-groupement par gene-id des reads obtenus lors du mapping, via le logiciel featurecount
 	-Analyses d'expression differentielle, par le logiciel DESeq2
 """	
@@ -92,8 +93,8 @@ class Run_Pipeline():
 		else:
 			self.listesample=[]
 			for files in os.listdir(self.INPUTPATH):
-				if re.match(r"(.)*.fq.gz$", files):
-					element=files.replace(".fq.gz","")
+				if re.match(r"(.)*.fastq", files):
+					element=files.replace(".fastq","")
 					self.listesample.append(element)
 		try:
 			self.listesample.remove("Undetermined_S0")
@@ -138,6 +139,35 @@ class Run_Pipeline():
 					fichier_serie.write(line)					
 				elif Part2==True:
 					fichier_test.write(line)
+		if steps=="allwithsalmon" or steps=="diffexpresswithsalmon":
+
+			try:
+				os.mkdir(output+'/DiffExpressSalmon')
+			except:
+				pass
+			
+			mon_fichier = open(str(fileconfig))
+			contenu = mon_fichier.readlines()
+			fichier_serie = open(output+"/DiffExpressSalmon/serie.txt", "w")
+			fichier_test= open(output+"/DiffExpressSalmon/compare.txt", "w")
+			Part1=False
+			Part2=False		
+			for line in contenu:
+				if line[0:2] == "--":
+					if Part1==False and Part2==False:
+						Part1=True
+					elif Part2==True:
+						Part2=False
+						fichier_test.close()
+					else:
+						Part2=True
+						Part1=False
+						fichier_serie.close()
+						fichier_test= open(output+"/DiffExpressSalmon/compare.txt", "a")
+				elif Part2==False and Part1==True:
+					fichier_serie.write(line)					
+				elif Part2==True:
+					fichier_test.write(line)
 			
 
 	def kmer(self):
@@ -154,11 +184,11 @@ class Run_Pipeline():
 		# si paired-end
 		if self.reads=="paired":
 			for element in self.listesample:
-				os.system("/"+self.STARPATH+"/STAR --genomeDir "+self.INDEXSTAR+" --readFilesIn "+self.INPUTPATH+"/"+element+"*R2*.fastq.gz "+self.INPUTPATH+"/"+element+"*R1*.fastq.gz --readFilesCommand zcat --outFilterIntronMotifs RemoveNoncanonicalUnannotated --chimSegmentMin 18 --chimScoreMin 12 --outReadsUnmapped Fastx --outFileNamePrefix "+self.OUTPUTPATH+"/"+element+"/"+element+" --sjdbGTFfile "+self.GenecodeANNOTATION+" --outSAMtype BAM SortedByCoordinate")
+				os.system("/"+self.STARPATH+"/STAR --genomeDir "+self.INDEXSTAR+" --readFilesIn "+self.INPUTPATH+"/"+element+"*R2*.fastq.gz "+self.INPUTPATH+"/"+element+"*R1*.fastq.gz --readFilesCommand zcat --outFilterIntronMotifs RemoveNoncanonicalUnannotated --runThreadN 4 --chimSegmentMin 18 --chimScoreMin 12 --outReadsUnmapped Fastx --outFileNamePrefix "+self.OUTPUTPATH+"/"+element+"/"+element+" --sjdbGTFfile "+self.GenecodeANNOTATION+" --outSAMtype BAM SortedByCoordinate")
 		# si single-end
 		else:
 			for element in self.listesample:
-				os.system("/"+self.STARPATH+"/STAR --genomeDir "+self.INDEXSTAR+" --readFilesIn "+self.INPUTPATH+"/"+element+".fq.gz --readFilesCommand zcat --outFilterIntronMotifs RemoveNoncanonicalUnannotated --chimSegmentMin 18 --chimScoreMin 12 --outReadsUnmapped Fastx --outFileNamePrefix "+self.OUTPUTPATH+"/"+element+"/"+element+" --sjdbGTFfile "+self.GenecodeANNOTATION+" --outSAMtype BAM SortedByCoordinate")
+				os.system("/"+self.STARPATH+"/STAR --genomeDir "+self.INDEXSTAR+" --readFilesIn "+self.INPUTPATH+"/"+element+".*  --outFilterIntronMotifs RemoveNoncanonicalUnannotated --chimSegmentMin 18 --chimScoreMin 12 --outReadsUnmapped Fastx --outFileNamePrefix "+self.OUTPUTPATH+"/"+element+"/"+element+" --sjdbGTFfile "+self.GenecodeANNOTATION+" --outSAMtype BAM SortedByCoordinate")
 
 
 	def recup_info_STAR(self):
@@ -212,49 +242,8 @@ class Run_Pipeline():
 
 
 
-	def add_gene_name(self):
-		mon_fichier = open(self.OUTPUTPATH+"/allcounts.txt", "r")
-		contenu = mon_fichier.readlines()
-
-		mon_fichier2 = open(self.GenecodeANNOTATION[1:-1], "r")
-		contenu2 = mon_fichier2.readlines()
-		fichier_output= open (self.OUTPUTPATH+"/allcounts_gene.txt", "w")
-		fichier_output.write("gene_name"+" "+contenu[0])
-		dic_liste_id={}
-		for lignes in contenu[1:]:
-			lignessplit=lignes.split()
-			nameTranscrit=lignessplit[0]
-			dic_liste_id[nameTranscrit]=lignes
-
-
-		for ligne in contenu2:
-				pos0= ligne.find('gene_id')
-				gene_id=ligne[pos0+8:-1]
-				geneid=gene_id.split(";")[0][1:-1]	
-				if geneid in dic_liste_id.keys():
-		
-					pos1 = ligne.find('gene_name')
-					gene_name=ligne[pos1+10:-1]
-					gene=gene_name.split(";")
-
-					fichier_output.write(gene[0][1:-1]+" "+dic_liste_id.get(geneid))
-					del dic_liste_id[geneid]
-
-		fichier_output.close()
-
-
-
 		
 
-
-	def differential_expression(self):
-		"""
-		analyse de l expression differentielle entre differentes conditions
-		fichier de configuration necessaire (voir exemple)
-		"""
-
-		subprocess.call(["Rscript","differential_expression.R", self.OUTPUTPATH+"/DiffExpress/", self.OUTPUTPATH+"/allcounts_gene.txt", self.index])
-		
 
 
 
@@ -262,35 +251,74 @@ class Run_Pipeline():
 	def salmon(self):
 		for element in self.listesample:
 			if self.reads=="paired":
-				os.system(self.SALMONPATH+"/salmon quant -i "+self.SALMONINDEX+" -l A -1 "+self.INPUTPATH+"/"+element+"*R1*.fastq.gz  -2 "+self.INPUTPATH+"/"+element+"*R2*.fastq.gz -o "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant")
+				os.system(self.SALMONPATH+"/salmon quant -i "+self.SALMONINDEX+" -l A -1 "+self.INPUTPATH+"/"+element+"*R1*.fastq.gz  -2 "+self.INPUTPATH+"/"+element+"*R2*.fastq.gz --numBootstraps 100 -p 4 -o "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant")
 			#else:
-				#TODO !!!!!!!!!!!!!!!!!!!!!
+				#TODO single end!!!!!!!!!!!!!!!!!!!!!
+		
+		
+	
+	def group_data_Salmon(self):
+		"""
+		Tri et regroupement  en un seul fichier des resultats obtenus apres Salmon pour chaque echantillon, qui sera utilisable pour l analyse de l expression differentielle
+		"""
 
 		for element in self.listesample:
 			os.system("for files in "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant/quant.sf; do sed 1,2d $files -i; cut -f1,4 $files | sort -k 1b,1 > "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant/"+element+"sorted.txt; done")
 
 
 		os.system("awk '{print $1}' "+self.OUTPUTPATH+"/"+self.listesample[0]+"/"+self.listesample[0]+"_transcripts_quant/"+self.listesample[0]+"sorted.txt>"+self.OUTPUTPATH+"/all_estimate_counts.txt")
-		liste_samples_for_all_estimate_counts="TrancritId"
 		
-		for element in self.listesample:
+		liste_samples_for_all_estimate_counts="Transcrit_Id"
+		
+		for element in self.listesample:	
 			liste_samples_for_all_estimate_counts=liste_samples_for_all_estimate_counts+" "+element
-			os.system("for files in "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant/"+element+"sorted.txt; do namefile=`basename $files sorted.txt`; sort -k 1b,1 "+self.OUTPUTPATH+"/all_estimate_counts.txt>"+self.OUTPUTPATH+"/all_estimate_countssorted.txt; echo $files; join all_estimate_countssorted.txt $files > "+self.OUTPUTPATH+"/all_estimate_counts.txt; rm "+self.OUTPUTPATH+"/all_estimate_countssorted.txt; done")
-
+			os.system("for files in "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant/"+element+"sorted.txt; do namefile=`basename $files sorted.txt`; sort -k 1b,1 "+self.OUTPUTPATH+"/all_estimate_counts.txt >"+self.OUTPUTPATH+"/all_estimate_countssorted.txt; echo $files; join "+self.OUTPUTPATH+"/all_estimate_countssorted.txt $files > "+self.OUTPUTPATH+"/all_estimate_counts.txt ; rm "+self.OUTPUTPATH+"/all_estimate_countssorted.txt; done")
+		
 		os.system("echo "+liste_samples_for_all_estimate_counts+" | cat - "+self.OUTPUTPATH+"/all_estimate_counts.txt > temp && mv temp "+self.OUTPUTPATH+"/all_estimate_counts.txt")
+		
+	def adapt_for_diffexpress(self):
+		os.system("python /home/ftessier/Documents/RNA-SEQ/PipelineNGS/removeDecimal.py "+self.OUTPUTPATH+"/all_estimate_counts.txt > "+self.OUTPUTPATH+"/all_estimate_counts2.txt")
+		subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/recup_nom_gene.R", self.OUTPUTPATH+"/all_estimate_counts2.txt", self.OUTPUTPATH+"/all_estimate_counts_with_gene_names.txt", self.index ])
 
 
 
+	def add_gene_name(self):
+		"""
+		rajoute les noms des genes devant les références des transcrits ou des
+		"""
+		os.system("python /home/ftessier/Documents/RNA-SEQ/PipelineNGS/removeDecimal.py "+self.OUTPUTPATH+"/allcounts.txt > "+self.OUTPUTPATH+"/allcounts2.txt")
+		subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/recup_nom_gene.R", self.OUTPUTPATH+"/allcounts2.txt", self.OUTPUTPATH+"/allcounts_gene.txt", self.index ])
 
 
+	def sleuth(self):
+		liste_transcrits=''
+		for element in self.listesample:
+			liste_transcrits=liste_transcrits+element+"/"+element+"_transcripts_quant"+","
+		print(liste_transcrits)
+		subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/sleuth.R", self.OUTPUTPATH, self.OUTPUTPATH+"/all_estimate_counts.txt", self.index,liste_transcrits[:-1]])
+		
+
+
+
+	def differential_expression(self, step):
+		"""
+		analyse de l expression differentielle entre differentes conditions
+		fichier de configuration necessaire (voir exemple)
+		"""
+		if step=="diffexpress" or step=="all":
+		
+			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH+"/DiffExpress/", self.OUTPUTPATH+"/allcounts_gene.txt", self.index, "Star"])
+		else:
+
+			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH+"/DiffExpressSalmon/", self.OUTPUTPATH+"/all_estimate_counts_with_gene_names.txt", self.index, "salmon"])
 
 if __name__=='__main__':
 	
-	description = ("input: fastq,  Ouput= count table for differential expression")
+	description = ("...")
 	parser = ArgumentParser(description=description)
-	parser.add_argument('-i', help="entry file with all fastq")
+	parser.add_argument('-i', help="entry directory with all fastq")
 	parser.add_argument('-o', help="output directory")
-	parser.add_argument('-s','--steps', choices=['all','star','featurecount','diffexpress', 'salmon'])
+	parser.add_argument('-s','--steps', choices=['all','star','featurecount','diffexpress', 'salmon', 'allwithsalmon', 'diffexpresswithsalmon'])
 	parser.add_argument('-c','--config', help="configFile")
 	args=parser.parse_args()
 
@@ -299,11 +327,13 @@ if __name__=='__main__':
 		MyRun.STAR()
 		MyRun.recup_info_STAR()
 	if args.steps=="all" or args.steps=="featurecount":
-		#MyRun.featurecount()
-		#MyRun.group_data()
+		MyRun.featurecount()
+		MyRun.group_data()
 		MyRun.add_gene_name()
-	if args.steps=="all" or args.steps=="diffexpress":
-		MyRun.differential_expression()
-	if args.steps=="salmon":
+	if args.steps=="salmon" or args.steps=="allwithsalmon":
 		MyRun.salmon()
-
+		MyRun.group_data_Salmon()
+		MyRun.adapt_for_diffexpress()
+		#MyRun.sleuth()
+	if args.steps=="all" or args.steps=="diffexpress" or args.steps=="allwithsalmon" or args.steps=="diffexpresswithsalmon":
+		MyRun.differential_expression(args.steps)
