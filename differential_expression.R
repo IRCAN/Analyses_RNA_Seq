@@ -13,12 +13,12 @@ library("AnnotationDbi")
 library(pathview)
 library(gage)
 library(gageData)
-
+library("data.table")
 
 
 args = commandArgs(trailingOnly=TRUE)
 
-pathoutput=args[1]
+
 #Recuperation de l'organisme étudié (souris ou humain), pour définir les paramètres adéquats
 if (args[3]=="mm10" | args[3]=="mm9"){
 	library("org.Mm.eg.db")
@@ -27,6 +27,7 @@ if (args[3]=="mm10" | args[3]=="mm9"){
 	idd="mmu"
 	kegg.sets = kegg.sets.mm[sigmet.idx.mm]
 	org.eg.db<- org.Mm.eg.db
+	specie_dataset="mmusculus_gene_ensembl"
 	print("on est chez la souris")
 } else {
 
@@ -36,27 +37,28 @@ if (args[3]=="mm10" | args[3]=="mm9"){
 	idd="hsa"
 	kegg.sets = kegg.sets.hs[sigmet.idx.hs]
 	org.eg.db<- org.Hs.eg.db
+	specie_dataset="hsapiens_gene_ensembl"
         print("on est chez l'humain")
 }
 
 
 
 if (args[4]=="salmon"){
-	
+	pathoutput=paste0(args[1],"/DiffExpressSalmon/")
 	library("tximport")
 	library("readr")
 	library("tximportData")
 
-	base_dir <- args[1]
+	
 
-	specie_dataset="mmusculus_gene_ensembl"
+	
+	s2c <- read.table(file.path(pathoutput, "serie.txt"), header = TRUE, stringsAsFactors=FALSE)
+	path=getwd()
+	s2c$path= paste0(path,"/",args[1],"/",s2c$sample,"/",s2c$sample,"_transcripts_quant/quant.sf")
 
-
-	s2c <- read.table(file.path(base_dir, "serie.txt"), header = TRUE, stringsAsFactors=FALSE)
-
+	print(s2c$path)
 	s3c <- s2c$path
 	names(s3c)<- s2c$sample
-
 	
 	allcounts= read.delim(args[2],sep="\t", as.is=T, check.names=F)
 	print(head(allcounts))
@@ -76,10 +78,10 @@ if (args[4]=="salmon"){
 	t2g <- within(t2g, target_id <- paste(ensembl_transcript_id, transcript_version,sep='.'))
 	t2g <- dplyr::rename(t2g, ens_gene = ensembl_gene_id, ext_gene = external_gene_name) 
 	tx2gene <- t2g[,c(5,2,3)]
-	write.table(tx2gene, file=paste("jdshdjs.xls", sep=""),
-		      sep="\t", quote=F, row.names=T)
+	#write.table(tx2gene, file=paste("jdshdjs.xls", sep=""),
+	#	      sep="\t", quote=F, row.names=T)
 	txi <- tximport(s3c, type="salmon", tx2gene=tx2gene, txOut=TRUE)
-	serie=read.delim(paste0(args[1],"serie.txt"), stringsAsFactors=F)
+	serie=read.delim(paste0(pathoutput,"serie.txt"), stringsAsFactors=F)
 	serie=arrange(serie, condition)
 
 	(condition <- serie$condition)
@@ -92,17 +94,18 @@ if (args[4]=="salmon"){
 
 } else {
 
-	
-	allcounts= read.delim(args[2],sep="\t", as.is=T, check.names=F)
-	
+	pathoutput=paste0(args[1],"/DiffExpress/")
+	allcounts= read.delim(args[2],sep="", as.is=T, check.names=F)
+	print(head(allcounts[,2:ncol(allcounts)]))
 	annotations=allcounts[,]
-	counts = allcounts[,3:ncol(allcounts)]
+	counts = allcounts[,2:ncol(allcounts)]
 	rownames(counts)=annotations$"GeneId"
 
-	references=(allcounts[,1:2])
+	allcounts2= read.delim(args[5],sep="\t", as.is=T, check.names=F)
+	references=(allcounts2[,1:2])
 	## Read in sample information
 	
-	serie=read.delim(paste0(args[1],"serie.txt"), stringsAsFactors=F)
+	serie=read.delim(paste0(pathoutput,"serie.txt"), stringsAsFactors=F)
 	serie=arrange(serie, condition)
 
 	(condition <- serie$condition)
@@ -123,10 +126,23 @@ if (args[4]=="salmon"){
 
 
 dds = DESeq(dds)
-normcounts = counts(dds,normalized=T)
+normcount = counts(dds,normalized=T)
+normcounts=as.data.frame(normcount)
 colnames(normcounts) = colnames(counts)
 ThePath=pathoutput
-write.table(normcounts, file=paste(ThePath,"/Normalized_Counts.xls", sep=""),  sep='\t', quote=F, row.names=T)
+print(head(rownames(normcounts)))
+if (args[4]=="salmon"){
+	  normcounts$target_id=rownames(normcounts)
+	  normcounts$target_id2=(substr(normcounts$target_id,1,18))
+	  tx2gene$target_id2=substr(tx2gene$target_id,1,18)
+	  normcounts2=merge(y = normcounts, x = tx2gene[ , c("target_id2","ext_gene")], by = "target_id2", all.y=TRUE)
+}else{
+	  
+	  a=((tstrsplit(rownames(normcounts), "\\.")))
+	  normcounts$"GeneId"=a[[1]]
+	  normcounts2=merge(y = normcounts, x = references[ , c("GeneId", "ext_gene")], by = "GeneId", all.y=TRUE)
+	  }	
+write.table(normcounts2, file=paste(ThePath,"/Normalized_Counts.xls", sep=""),  sep='\t', quote=F, row.names=F)
 
 
 
@@ -134,7 +150,7 @@ initialisation<-function(condition1,condition2){
 	print(condition1)
 	  print(condition2)
 	  res1 = results(dds, contrast=c("condition",condition1,condition2), 
-	                 cooksCutoff = FALSE, independentFiltering = FALSE) #, lfcThreshold=0.5) ## 1
+	                 cooksCutoff = FALSE, independentFiltering = FALSE, betaPrior=FALSE) #, lfcThreshold=0.5) ## 1
 	  res1=data.frame(res1)
 	  #res1 = data.frame(Symbol = annotations$GeneId,
 	  #                  res1)
@@ -175,14 +191,15 @@ selection_gene<-function(res1, condition1, condition2){
 	  
 	  # select genes
 	  selected <-   rownames(sig)
-	  
+
 	  x<-log2(counts(dds,normalized=TRUE)[rownames(dds) %in% selected,])
 	  x[x==-Inf] <- 0 
 	  
 	  aaa<-rownames(subset(serie, condition==condition1 | condition==condition2))
+
 	  if (length(x)>2){
-	  heatmap.2(x[,as.numeric(aaa)], scale="row",Rowv = TRUE, Colv= FALSE, dendrogram="row", trace="none", margin=c(4,6), cexRow=0.5, cexCol=0.7, keysize=1 )
-	 }
+		try(heatmap.2(x[,as.numeric(aaa)], scale="row",Rowv = TRUE, Colv= FALSE, dendrogram="row", trace="none", margin=c(4,6), cexRow=0.5, cexCol=0.7, keysize=1 ))
+	  }
 	  return(selected)
 }
 
@@ -197,16 +214,16 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 	
 	  res2=res1[rownames(res1) %in% selected,]
 	  if (args[4]=="salmon"){
-	  res2$target_id=rownames(res2)
-	  res2$target_id2=(substr(res2$target_id,1,18))
-	  tx2gene$target_id2=substr(tx2gene$target_id,1,18)
-	  print(head(res2))
-	  print(head(tx2gene))
-	  file_to_annoted=merge(y = res2, x = tx2gene[ , c("target_id2","ext_gene")], by = "target_id2", all.y=TRUE)
-		}else{
-		  res2$GeneId=rownames(res2)
-		  #colnames(res2) <- c("GeneId","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj","absFC")
+		  res2$target_id=rownames(res2)
+		  res2$target_id2=(substr(res2$target_id,1,18))
+		  tx2gene$target_id2=substr(tx2gene$target_id,1,18)
+		  print(head(res2))
+		  print(head(tx2gene))
+		  file_to_annoted=merge(y = res2, x = tx2gene[ , c("target_id2","ext_gene")], by = "target_id2", all.y=TRUE)
+	  }else{
 
+	 	  a=((tstrsplit(rownames(res2), "\\.")))
+		  res2$"GeneId"=a[[1]]
 		  file_to_annoted=merge(y = res2, x = references[ , c("GeneId", "ext_gene")], by = "GeneId", all.y=TRUE)
 	  }	  
 	  #res1$entrez = select(org.Mm.eg.db, keys=row.names(res1),  column="ENTREZID",keytype="SYMBOL", multiVals="first")
@@ -292,8 +309,8 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 
   
 differentialexpression<-function(condition1,condition2){
-	  dir.create(paste0(args[1],condition1,"_vs_",condition2), showWarnings = FALSE)
-	  setwd(paste0(args[1],condition1,"_vs_",condition2))
+	  dir.create(paste0(pathoutput,condition1,"_vs_",condition2), showWarnings = FALSE)
+	  setwd(paste0(pathoutput,condition1,"_vs_",condition2))
 	  pdf(file=paste0(condition1,"_vs_",condition2,"_FoldchangeRplots.pdf"))
 	  res1=initialisation(condition1,condition2)
 	  graphics(res1, condition1,condition2)
@@ -302,11 +319,23 @@ differentialexpression<-function(condition1,condition2){
 
 	  
 	  dat=res1[rownames(res1) %in% selected,]
-	  write.table(res1, file=paste("No_selection_",condition1,"_vs_",condition2,".xls", sep=""),
-		      sep="\t", quote=F, row.names=T)
+	  if (args[4]=="salmon"){
+		  res1$target_id=rownames(res1)
+		  res1$target_id2=(substr(res1$target_id,1,18))
+		  tx2gene$target_id2=substr(tx2gene$target_id,1,18)
+		  res3=merge(y = res1, x = tx2gene[ , c("target_id2","ext_gene")], by = "target_id2", all.y=TRUE)
+	  }else{
+		  a=((tstrsplit(rownames(res1), "\\.")))
+		  res1$"GeneId"=a[[1]]
 
-	  write.table(res1[rownames(res1) %in% selected,], file=paste(condition1,"_vs_",condition2,".xls", sep=""),
-		      sep="\t", quote=F, row.names=T)
+		  res3=merge(y = res1, x = references[ , c("GeneId", "ext_gene")], by = "GeneId", all.y=TRUE)
+	  }	  
+	  
+	  write.table(res3, file=paste("No_selection_",condition1,"_vs_",condition2,".xls", sep=""),
+		      sep="\t", quote=F, row.names=F)
+
+	  write.table(res3[rownames(res1) %in% selected,], file=paste(condition1,"_vs_",condition2,".xls", sep=""),
+		      sep="\t", quote=F, row.names=F)
 
 	  dev.off()
 	  pathways(condition1,condition2, res1, selected, kegg.sets, org.eg.db, allcounts)
@@ -315,7 +344,7 @@ differentialexpression<-function(condition1,condition2){
 
 
 firstpath=getwd()
-conditionToTest=read.delim(paste0(args[1],"compare.txt"), stringsAsFactors=F, sep="	")
+conditionToTest=read.delim(paste0(pathoutput,"compare.txt"), stringsAsFactors=F, sep="	")
 
 
 for (i in 1:nrow(conditionToTest)){

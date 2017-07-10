@@ -90,6 +90,9 @@ class Run_Pipeline():
 				if re.match(r"(.)*_R1.fastq.gz$", files):
 					element=files.replace("_R1.fastq.gz","")
 					self.listesample.append(element)
+				elif re.match(r"(.)*_R1.fastq", files):
+					element=files.replace("_R1.fastq","")
+					self.listesample.append(element)
 		else:
 			self.listesample=[]
 			for files in os.listdir(self.INPUTPATH):
@@ -174,7 +177,7 @@ class Run_Pipeline():
 		"""
 		Analyse des échantillons par kmer (avant mapping), creation d'un premier arbre des echantillons
 		"""
-		retcode = subprocess.call(["Rscript","Analyse_kmer.R", self.INPUTPATH, self.OUTPUTPATH])
+		retcode = subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/Analyse_kmer.R", self.INPUTPATH, self.OUTPUTPATH])
 
 	def STAR(self):
 		"""
@@ -251,10 +254,9 @@ class Run_Pipeline():
 	def salmon(self):
 		for element in self.listesample:
 			if self.reads=="paired":
-				os.system(self.SALMONPATH+"/salmon quant -i "+self.SALMONINDEX+" -l A -1 "+self.INPUTPATH+"/"+element+"*R1*.fastq.gz  -2 "+self.INPUTPATH+"/"+element+"*R2*.fastq.gz --numBootstraps 100 -p 4 -o "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant")
-			#else:
-				#TODO single end!!!!!!!!!!!!!!!!!!!!!
-		
+				os.system(self.SALMONPATH+"/salmon quant -i "+self.SALMONINDEX+" -l A -1 "+self.INPUTPATH+"/"+element+"*R1*.fastq.gz  -2 "+self.INPUTPATH+"/"+element+"*R2*.fastq.gz --numBootstraps 100 -p 8 -o "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant -g "+self.GenecodeANNOTATION)
+			else:
+				os.system(self.SALMONPATH+"/salmon quant -i "+self.SALMONINDEX+" -l A -r "+self.INPUTPATH+"/"+element+".fastq --numBootstraps 100 -p 4 -o "+self.OUTPUTPATH+"/"+element+"/"+element+"_transcripts_quant")
 		
 	
 	def group_data_Salmon(self):
@@ -288,7 +290,7 @@ class Run_Pipeline():
 		"""
 		os.system("python /home/ftessier/Documents/RNA-SEQ/PipelineNGS/removeDecimal.py "+self.OUTPUTPATH+"/allcounts.txt > "+self.OUTPUTPATH+"/allcounts2.txt")
 		subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/recup_nom_gene.R", self.OUTPUTPATH+"/allcounts2.txt", self.OUTPUTPATH+"/allcounts_gene.txt", self.index ])
-
+		os.system("rm "+self.OUTPUTPATH+"/allcounts2.txt")
 
 	def sleuth(self):
 		liste_transcrits=''
@@ -307,10 +309,10 @@ class Run_Pipeline():
 		"""
 		if step=="diffexpress" or step=="all":
 		
-			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH+"/DiffExpress/", self.OUTPUTPATH+"/allcounts_gene.txt", self.index, "Star"])
+			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH, self.OUTPUTPATH+"/allcounts.txt", self.index, "Star", self.OUTPUTPATH+"/allcounts_gene.txt",])
 		else:
 
-			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH+"/DiffExpressSalmon/", self.OUTPUTPATH+"/all_estimate_counts_with_gene_names.txt", self.index, "salmon"])
+			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH, self.OUTPUTPATH+"/all_estimate_counts_with_gene_names.txt", self.index, "salmon"])
 
 if __name__=='__main__':
 	

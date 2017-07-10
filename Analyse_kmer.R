@@ -8,7 +8,7 @@ setwd(args[1])
 
 filenames <- dir(path=args[1], pattern="*_R1.fastq.gz")
 
-
+print(filenames)
 len=length(filenames)
 fq <- fastqq(filenames, k=9 )
 

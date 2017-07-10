@@ -25,23 +25,23 @@ Human:	hg37,hg38	Mouse: mm10,mm9
 
 Expression différentielle =True
 --------Description échantillons---------------
-sample	condition	path
-MM309_S1	Control5j	~/Documents/Projet_recherche/TestPipeline/MM309_S1/MM309_S1_transcripts_quant/quant.sf
-WM2428_S2	Control5j	~/Documents/Projet_recherche/TestPipeline/WM2428_S2/WM2428_S2_transcripts_quant/quant.sf
-WM2437_S3	Control5j	~/Documents/Projet_recherche/TestPipeline/WM2437_S3/WM2437_S3_transcripts_quant/quant.sf
-MM371_S4	Control5j	~/Documents/Projet_recherche/TestPipeline/MM371_S4/MM371_S4_transcripts_quant/quant.sf
-WM2431_S5	Tert5j	~/Documents/Projet_recherche/TestPipeline/WM2431_S5/WM2431_S5_transcripts_quant/quant.sf
-MM279_S6	Tert5j	~/Documents/Projet_recherche/TestPipeline/MM279_S6/MM279_S6_transcripts_quant/quant.sf
-WM3080_S7	Tert5j	~/Documents/Projet_recherche/TestPipeline/WM3080_S7/WM3080_S7_transcripts_quant/quant.sf
-WM3087_S8	Tert5j	~/Documents/Projet_recherche/TestPipeline/WM3087_S8/WM3087_S8_transcripts_quant/quant.sf
-MM341_S9	Control10j	~/Documents/Projet_recherche/TestPipeline/MM341_S9/MM341_S9_transcripts_quant/quant.sf
-MM343_S10	Control10j	~/Documents/Projet_recherche/TestPipeline/MM343_S10/MM343_S10_transcripts_quant/quant.sf
-WM3004_S11	Control10j	~/Documents/Projet_recherche/TestPipeline/WM3004_S11/WM3004_S11_transcripts_quant/quant.sf
-MM84_S12	Control10j	~/Documents/Projet_recherche/TestPipeline/MM84_S12/MM84_S12_transcripts_quant/quant.sf
-MM257_S13	Tert10j	~/Documents/Projet_recherche/TestPipeline/MM257_S13/MM257_S13_transcripts_quant/quant.sf
-MM258_S14	Tert10j	~/Documents/Projet_recherche/TestPipeline/MM258_S14/MM258_S14_transcripts_quant/quant.sf
-WM2494_S15	Tert10j	~/Documents/Projet_recherche/TestPipeline/WM2494_S15/WM2494_S15_transcripts_quant/quant.sf
-WM3009_S16	Tert10j	~/Documents/Projet_recherche/TestPipeline/WM3009_S16/WM3009_S16_transcripts_quant/quant.sf
+sample	condition
+MM309_S1	Control5j
+WM2428_S2	Control5j
+WM2437_S3	Control5j
+MM371_S4	Control5j
+WM2431_S5	Tert5j
+MM279_S6	Tert5j
+WM3080_S7	Tert5j
+WM3087_S8	Tert5j
+MM341_S9	Control10j
+MM343_S10	Control10j
+WM3004_S11	Control10j
+MM84_S12	Control10j
+MM257_S13	Tert10j
+MM258_S14	Tert10j
+WM2494_S15	Tert10j
+WM3009_S16	Tert10j
 -----------conditions à tester-------------------
 condition1	condition2
 Control10j	Tert10j
