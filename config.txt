@@ -12,7 +12,7 @@ Choose your genome:
 
 
 Available genomes:
-Human:	hg37,hg38	Mouse: mm10,mm9
+Human:	hg37,hg38	Mouse: mm10,mm9		Zebrafish: zv10
 		
 
 
@@ -66,14 +66,14 @@ hg37="/scratch/db/genomes/human/index/GrCh37_chr_only"
 hg38="/scratch/db/genomes/human/index/GrCh38_chr_only"
 mm10="/scratch/db/genomes/mus_musculus/index/mm10"
 mm9="/scratch/db/genomes/mus_musculus/index/mm9"
-
+zv10="/home/ftessier/Documents/RNA-SEQ/Zebrafish/Index"
 ######GENCODE#############################################################
 
 hg37="/home/Share/ftessier/PipelineNGS/gencode.v25lift37.annotation.gtf"
 hg38="/home/Share/ftessier/PipelineNGS/gencode.v25.annotation.gtf"
 mm10="/home/Share/ftessier/PipelineNGS/gencode.vM11.annotation.gtf"
 mm9="/home/Share/ftessier/PipelineNGS/gencode.vM1.annotation.gtf"
-
+zv10="/scratch/db/genomes/danio_rerio/annotations/ensembl_zv10.gtf"
 #####FEATURECOUNTS########################################################
 FEATURECOUNTSPATH="/scratch/bin/alignment/subread/bin"
 

@@ -6,7 +6,7 @@ library(seqTools)
 path=getwd()
 setwd(args[1])
 
-filenames <- dir(path=args[1], pattern="*_R1.fastq.gz")
+filenames <- dir(path=args[1], pattern="*_R2.fastq.gz")
 
 print(filenames)
 len=length(filenames)

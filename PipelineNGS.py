@@ -229,10 +229,10 @@ class Run_Pipeline():
 		"""
 		Tri et regroupement  en un seul fichier des resultats obtenus apres featurecounts pour chaque echantillon, qui sera utilisable pour l analyse de l expression differentielle
 		"""
-
+		
 		for element in self.listesample:
 			os.system("for files in "+self.OUTPUTPATH+"/"+element+"/"+element+"_count.txt; do namefile=`basename $files .txt`; sed 1,2d $files -i; cut -f1,7 $files | sort -k 1b,1 > "+self.OUTPUTPATH+"/"+element+"/$namefile'sorted.txt'; done")
-
+		
 
 		os.system("awk '{print $1}' "+self.OUTPUTPATH+"/"+self.listesample[0]+"/"+self.listesample[0]+"_countsorted.txt>"+self.OUTPUTPATH+"/allcounts.txt")
 		liste_samples_for_allcount="GeneId"
@@ -314,6 +314,13 @@ class Run_Pipeline():
 
 			subprocess.call(["Rscript","/home/ftessier/Documents/RNA-SEQ/PipelineNGS/differential_expression.R", self.OUTPUTPATH, self.OUTPUTPATH+"/all_estimate_counts_with_gene_names.txt", self.index, "salmon"])
 
+############à modifier############
+	def ajout_legend(self):
+		os.system("for file in "+self.OUTPUTPATH+"/DiffExpress/*/*_*regulate*.png; do repertoire=$(dirname $file); echo $repertoire; condition=$(basename $repertoire); python /home/ftessier/Documents/RNA-SEQ/PipelineNGS/legend_image.py $file $repertoire/ALL_$condition.xls "+self.OUTPUTPATH+"/DiffExpress/$condition/keggres.txt "+self.OUTPUTPATH+"/DiffExpress/$condition; done")
+
+
+
+
 if __name__=='__main__':
 	
 	description = ("...")
@@ -336,6 +343,7 @@ if __name__=='__main__':
 		MyRun.salmon()
 		MyRun.group_data_Salmon()
 		MyRun.adapt_for_diffexpress()
-		#MyRun.sleuth()
+		MyRun.sleuth()
 	if args.steps=="all" or args.steps=="diffexpress" or args.steps=="allwithsalmon" or args.steps=="diffexpresswithsalmon":
-		MyRun.differential_expression(args.steps)
+		#MyRun.differential_expression(args.steps)
+		MyRun.ajout_legend()

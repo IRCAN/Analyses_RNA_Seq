@@ -18,8 +18,29 @@ library("data.table")
 
 args = commandArgs(trailingOnly=TRUE)
 
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y, use="pairwise.complete.obs"))
+    txt <- format(c(r, 0.123456789), digits = digits)[1]
+    txt <- paste0(prefix, txt)
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
 
+mypanel = function(x,y,...)
+{
+  points(x,y,pch=16,...)
+  abline(0,1,col=2)
+}
+
+smooth.pairs = function(...) smoothScatter(..., nrpoints = 1000, add = TRUE)
 #Recuperation de l'organisme étudié (souris ou humain), pour définir les paramètres adéquats
+
+#------------------------------------------------------------------------------------------------------------------------------------------#
+#si nouvel organisme, mettre references pour kegg ci-dessous, selon la meme structure
+#-----souris
 if (args[3]=="mm10" | args[3]=="mm9"){
 	library("org.Mm.eg.db")
 	data(kegg.sets.mm)
@@ -29,7 +50,18 @@ if (args[3]=="mm10" | args[3]=="mm9"){
 	org.eg.db<- org.Mm.eg.db
 	specie_dataset="mmusculus_gene_ensembl"
 	print("on est chez la souris")
-} else {
+#---zebrafish
+} else if (args[3]=="zv10"){
+	library("org.Dr.eg.db")
+	data(kegg.sets.dr)
+	data(sigmet.idx.dr)
+	idd="dre"
+	kegg.sets = kegg.sets.dr[sigmet.idx.dr]
+	org.eg.db<- org.Dr.eg.db
+	specie_dataset="drerio_gene_ensembl"
+	print("on est chez le poisson zebre")
+#----humain
+} else if ((args[3]=="hg37" | args[3]=="hg38"){
 
 	library("org.Hs.eg.db")
 	data(kegg.sets.hs)
@@ -42,14 +74,14 @@ if (args[3]=="mm10" | args[3]=="mm9"){
 }
 
 
-
+#-----------------------------------------------------------------------------------------------------------------------------------#
+#                         Preparation Analayse Expression differentielle a partir des resultats obtenus par salmon
+#-----------------------------------------------------------------------------------------------------------------------------------#
 if (args[4]=="salmon"){
 	pathoutput=paste0(args[1],"/DiffExpressSalmon/")
 	library("tximport")
 	library("readr")
 	library("tximportData")
-
-	
 
 	
 	s2c <- read.table(file.path(pathoutput, "serie.txt"), header = TRUE, stringsAsFactors=FALSE)
@@ -65,10 +97,6 @@ if (args[4]=="salmon"){
 	counts = allcounts[,3:ncol(allcounts)]
 	
 
-
-
-
-
 	mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL",
 		                 dataset = specie_dataset,
 		                 host = 'ensembl.org')
@@ -78,8 +106,7 @@ if (args[4]=="salmon"){
 	t2g <- within(t2g, target_id <- paste(ensembl_transcript_id, transcript_version,sep='.'))
 	t2g <- dplyr::rename(t2g, ens_gene = ensembl_gene_id, ext_gene = external_gene_name) 
 	tx2gene <- t2g[,c(5,2,3)]
-	#write.table(tx2gene, file=paste("jdshdjs.xls", sep=""),
-	#	      sep="\t", quote=F, row.names=T)
+
 	txi <- tximport(s3c, type="salmon", tx2gene=tx2gene, txOut=TRUE)
 	serie=read.delim(paste0(pathoutput,"serie.txt"), stringsAsFactors=F)
 	serie=arrange(serie, condition)
@@ -91,7 +118,9 @@ if (args[4]=="salmon"){
 		                           design = ~condition)
 
 
-
+#-----------------------------------------------------------------------------------------------------------------------------------#
+#                       Preparation   Analyse Expression differentielle a partir des resultats obtenus par STAR
+#-----------------------------------------------------------------------------------------------------------------------------------#
 } else {
 
 	pathoutput=paste0(args[1],"/DiffExpress/")
@@ -123,8 +152,9 @@ if (args[4]=="salmon"){
 }
 
 
-
-
+#-----------------------------------------------------------------------------------------------------------------------------------#
+#                      utilisation de deseq2, normalisation des donnees
+#-----------------------------------------------------------------------------------------------------------------------------------#
 dds = DESeq(dds)
 normcount = counts(dds,normalized=T)
 normcounts=as.data.frame(normcount)
@@ -137,32 +167,40 @@ if (args[4]=="salmon"){
 	  tx2gene$target_id2=substr(tx2gene$target_id,1,18)
 	  normcounts2=merge(y = normcounts, x = tx2gene[ , c("target_id2","ext_gene")], by = "target_id2", all.y=TRUE)
 }else{
-	  
 	  a=((tstrsplit(rownames(normcounts), "\\.")))
 	  normcounts$"GeneId"=a[[1]]
 	  normcounts2=merge(y = normcounts, x = references[ , c("GeneId", "ext_gene")], by = "GeneId", all.y=TRUE)
 	  }	
 write.table(normcounts2, file=paste(ThePath,"/Normalized_Counts.xls", sep=""),  sep='\t', quote=F, row.names=F)
 
-
-
+#-----------------------------------------------------------------------------------------------------------------------------#
+#
+#------------------------------------------------------------------------------------------------------------------------------#
 initialisation<-function(condition1,condition2){
-	print(condition1)
+	  print(condition1)
 	  print(condition2)
 	  res1 = results(dds, contrast=c("condition",condition1,condition2), 
 	                 cooksCutoff = FALSE, independentFiltering = FALSE, betaPrior=FALSE) #, lfcThreshold=0.5) ## 1
 	  res1=data.frame(res1)
-	  #res1 = data.frame(Symbol = annotations$GeneId,
-	  #                  res1)
-  
 	  res1$absFC = abs(res1$log2FoldChange)
-  
-  
   	return(res1)
 }
 
+
+#-----------------------------------------------------------------------------------------------------------------------------#
+# graphics: comparaison similarite echantillon meme condition, volcano-plot, MA-plot
+#------------------------------------------------------------------------------------------------------------------------------#
 #visual graphics
 graphics<-function(res1, condition1, condition2){
+
+	pairs(log2(counts[,serie$condition==condition1]+1), upper.panel=panel.cor,
+	      main=condition1)
+
+
+	## Pairwise comparison: counts,  samples
+	pairs(log2(counts[,serie$condition==condition2]+1), upper.panel=panel.cor,
+	      main=condition2)
+
 
   	plot(log2(res1$baseMean), res1$log2FoldChange, pch=16, xlab="Log2 baseMean", ylab="Log2 FC", main=paste("MA-plot: ",condition1," vs ",condition2))
 	  points(log2(res1$baseMean)[res1$padj<0.05], 
@@ -179,7 +217,9 @@ graphics<-function(res1, condition1, condition2){
 
 }  
   
-  
+#-----------------------------------------------------------------------------------------------------------------------------#
+# recuperation des genes differentiallement exprimes
+#------------------------------------------------------------------------------------------------------------------------------#
 selection_gene<-function(res1, condition1, condition2){
 	  # order by BH adjusted p-value
 	  resOrdered<- res1[order(res1$padj),]
@@ -205,7 +245,9 @@ selection_gene<-function(res1, condition1, condition2){
 
 
 
-
+#-----------------------------------------------------------------------------------------------------------------------------#
+# enrichissements, annotations, kegg pathways
+#------------------------------------------------------------------------------------------------------------------------------#
 
 pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, allcounts){
 
@@ -226,10 +268,7 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 		  res2$"GeneId"=a[[1]]
 		  file_to_annoted=merge(y = res2, x = references[ , c("GeneId", "ext_gene")], by = "GeneId", all.y=TRUE)
 	  }	  
-	  #res1$entrez = select(org.Mm.eg.db, keys=row.names(res1),  column="ENTREZID",keytype="SYMBOL", multiVals="first")
 	  file_to_annoted$entrez<-as.character(mapIds(org.eg.db, keys=file_to_annoted$ext_gene,  column="ENTREZID",keytype="SYMBOL", multiVals="first"))
-	  #gggg<-gggg[match(unique(gggg$SYMBOL),gggg$SYMBOL),]
-	  #file_to_annoted$entrez=gggg$ENTREZID
 	  file_to_annoted$name = as.character(mapIds(org.eg.db, keys=file_to_annoted$ext_gene,  column="GENENAME",keytype="SYMBOL",multiVals="first"))
 	  file_to_annoted$GO = as.character(mapIds(org.eg.db, keys=file_to_annoted$ext_gene,  column="GO",keytype="SYMBOL",multiVals="list"))
 	  
@@ -257,7 +296,7 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 	  write.table(keggres$greater, file = "keggresgreater.txt",sep = "\t")
 	  write.table(keggres, file = "keggres.txt",sep = "\t")
 	  a=tbl_df(keggres$greater)
-	  b=which(a$q.val < 0.1)
+	  b=which(a$q.val < 0.9) ###change qvalue for kegg pathway
 	  keggresId=FALSE
 	 if (length(b)>0){
 		  keggresId=TRUE
@@ -275,7 +314,6 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 	  }
 	 
 	  if (keggresId==TRUE){
-		  # plot multiple pathways (plots saved to disk and returns a throwaway list object) !!!!!!!!!!!!!!!!!!!!!!!!!!
 			tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.id=pid, kegg.native =T, same.layer=F, species=idd, min.nnodes = 0, out.suffix=paste(condition1,"_vs_",condition2,"_upregulate_n",match(pid,keggresids), sep="")))
 	  }
 	  keggresId=FALSE
@@ -297,7 +335,6 @@ pathways<- function(condition1,condition2, res1,selected, kegg.sets, org.eg.db, 
 		  keggresids
 	  }
 	  if (keggresId==TRUE){
-			  # plot multiple pathways (plots saved to disk and returns a throwaway list object) !!!!
 			  tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.id=pid, kegg.native =T, same.layer=F, species="mmu", min.nnodes = 0, out.suffix=paste(condition1,"_vs_",condition2,"_downregulate_n",match(pid,keggresids), sep="")))
 	 }
 }
