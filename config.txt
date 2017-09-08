@@ -69,10 +69,10 @@ mm9="/scratch/db/genomes/mus_musculus/index/mm9"
 zv10="/home/ftessier/Documents/RNA-SEQ/Zebrafish/Index"
 ######GENCODE#############################################################
 
-hg37="/home/Share/ftessier/PipelineNGS/gencode.v25lift37.annotation.gtf"
-hg38="/home/Share/ftessier/PipelineNGS/gencode.v25.annotation.gtf"
-mm10="/home/Share/ftessier/PipelineNGS/gencode.vM11.annotation.gtf"
-mm9="/home/Share/ftessier/PipelineNGS/gencode.vM1.annotation.gtf"
+hg37="/scratch/db/genomes/human/annotations/gencode_hg19_GRCh37.gtf"
+hg38="/scratch/db/genomes/human/annotations/gencode_hg38_GRCh38.gtf"
+mm10="/scratch/db/genomes/mus_musculus/annotations/gencode_mm10_GRCh38.gtf"
+mm9="/scratch/db/genomes/mus_musculus/annotations/gencode_mm9_GRCh37.gtf"
 zv10="/scratch/db/genomes/danio_rerio/annotations/ensembl_zv10.gtf"
 #####FEATURECOUNTS########################################################
 FEATURECOUNTSPATH="/scratch/bin/alignment/subread/bin"
@@ -81,7 +81,7 @@ FEATURECOUNTSPATH="/scratch/bin/alignment/subread/bin"
 SALMONPATH="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/bin"
 
 ####INDEX SALMON#################################################
-hg38="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/transcripts_index_human_Grch38"
-mm10="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/transcripts_index_mouse"
+hg38="/scratch/db/genomes/mus_musculus/index/mm10_transcrits/salmon/"
+mm10="/scratch/db/genomes/human/index/GrCh38_transcrits/salmon/"
 
 

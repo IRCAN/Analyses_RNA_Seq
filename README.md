@@ -29,7 +29,7 @@ III-Ressources nécessaires
 
 Avant de lancer le pipeline, les fichiers ci-dessous sont nécessaires pour son bon fonctionnement.
 
--Avoir réalise run index STAR du génome ou transcriptome sur lequel on veut réaliser le mapping. Si pipeline lancé du serveur de l'ircan, les index pour l'humain (Hg19- Hg38) et pour la souris (Mg38) sont déjà disponibles.
+-Avoir réalise run index STAR du génome ou transcriptome sur lequel on veut réaliser le mapping. Si pipeline lancé du serveur de l'ircan, les index pour l'humain (Hg19- Hg38),pour la souris (Mg38) et pour le poissson-zèbre (zv10) sont déjà disponibles.
 Si extérieur IRCAN, ou pour tout nouveau génome, il faudra modifier les chemins dans le fichier config.txt
 
 -le fichier .gtf correspondant, à récupérer sur GENCODE (déjà disponibles pour IRCAN); chemin également à modifier dans le fichier config.txt
@@ -48,7 +48,7 @@ Choose your genome:
 >Genome =mm10
 
 Available genomes:
-Human:	hg37,hg38	Mouse: mm10,mm9
+Human:	hg37,hg38	Mouse: mm10,mm9 poissonzebre: zv10
 		
 ############################################################################
 #############                                 ##############################
@@ -112,6 +112,9 @@ Un tableau regroupant tous les différents comptages: allcounts.txt
 e-Expression différentielle, Annotations
 
 
+Avec le logiciel deseq2, une analyse de l'expression différentielle est effectuée entre 2 conditions (selon fichier config.txt)
+la liste des gènes différenitellement exprimées est ensuite enrichie avec les identifiants Kegg, les GO terms, ...
+Ensuite les Kegg pathways avec le plus de gènes D.E. impliqués sont créés.
 
 
 IV- Lancement rapide
