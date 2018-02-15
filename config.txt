@@ -1,0 +1,111 @@
+
+
+
+
+Tell if reads are paired-end (if Paired-end=FALSE -> reads = single-end):
+#Do not put space after "="
+>Paired-end =TRUE
+
+Choose your genome:
+#Do not put space after "="
+>Genome =mm10
+
+
+Available genomes:
+Human:	hg37,hg38	Mouse: mm10,mm9		Zebrafish: zv10
+		
+
+
+
+############################################################################
+#############                                 ##############################
+#############      Differential Expression    ##############################
+#############                                 ##############################
+############################################################################
+
+Expression différentielle =True
+--------Description échantillons---------------(put tab between sample and condition)
+sample	condition
+MM309_S1	Control5j
+WM2428_S2	Control5j
+WM2437_S3	Control5j
+MM371_S4	Control5j
+WM2431_S5	Tert5j
+MM279_S6	Tert5j
+WM3080_S7	Tert5j
+WM3087_S8	Tert5j
+MM341_S9	Control10j
+MM343_S10	Control10j
+WM3004_S11	Control10j
+MM84_S12	Control10j
+MM257_S13	Tert10j
+MM258_S14	Tert10j
+WM2494_S15	Tert10j
+WM3009_S16	Tert10j
+-----------conditions à tester-------------------(put tab between the two conditions)
+condition1	condition2
+Control10j	Tert10j
+Control5j	Tert5j
+-------------------------------------------------
+
+
+###########DO NOT CHANGE ANYTHING UNDER THIS (unless you want to)######################
+
+#########################################################################
+###############                        ##################################
+###############      PATHWAYS          #################################
+###############                        ##################################
+#########################################################################
+
+######RSEM###############################################################
+
+RSEMPATH="/home/ftessier/Documents/RSEM-1.3.0/"
+
+
+######Index RSEM###############################################################
+
+hg37=
+hg38="/home/ftessier/Documents/rsem/Human"
+mm10="/home/ftessier/Documents/rsem/Mouse"
+mm9=
+zv10=
+
+######STAR###############################################################
+
+STARPATH="/scratch/bin/RNA_Seq/Star"
+
+#####Index STAR##########################################################
+hg37="/scratch/db/genomes/human/index/GrCh37_chr_only/STAR"
+hg38="/scratch/db/genomes/human/index/GrCh38_chr_only/STAR"
+mm10="/scratch/db/genomes/mus_musculus/index/mm10/STAR"
+mm9="/scratch/db/genomes/mus_musculus/index/mm9/STAR"
+zv10="/home/ftessier/Documents/RNA-SEQ/Zebrafish/Index"
+######GENCODE#############################################################
+
+hg37="/scratch/db/genomes/human/annotations/gencode_hg19_GRCh37.gtf"
+hg38="/scratch/db/genomes/human/annotations/gencode_hg38_GRCh38.gtf"
+mm10="/scratch/db/genomes/mus_musculus/annotations/gencode_mm10_GRCh38.gtf"
+mm9="/scratch/db/genomes/mus_musculus/annotations/gencode_mm9_GRCh37.gtf"
+zv10="/scratch/db/genomes/danio_rerio/annotations/ensembl_zv10.gtf"
+#####FEATURECOUNTS########################################################
+FEATURECOUNTSPATH="/scratch/bin/alignment/subread/bin"
+
+######SALMON################################################
+SALMONPATH="/home/ftessier/Documents/RNA-SEQ/Salmon/Salmon-latest_linux_x86_64/bin"
+
+######KALLISTO################################################
+KALLISTOPATH="/home/ftessier/Documents/RNA-SEQ/kallisto_linux-v0.43.0/"
+
+####INDEX SALMON#################################################
+mm10="/scratch/db/genomes/mus_musculus/index/mm10_transcrits/salmon/"
+hg38="/scratch/db/genomes/human/index/GrCh38_transcrits/salmon/"
+
+####INDEX KALLISTO#################################################
+hg38="/scratch/db/genomes/human/index/GrCh38_transcrits/kallisto/GrCh38_kallisto.idx"
+mm10="/scratch/db/genomes/mus_musculus/index/mm10_transcrits/kallisto/mm10_kallisto.idx"
+
+####TX2GENE########################################################
+hg38=/home/ftessier/tx2gene_human
+mm10=/home/ftessier/tx2gene_mouse
+zv10=/home/ftessier/tx2gene_zebrafish
+
