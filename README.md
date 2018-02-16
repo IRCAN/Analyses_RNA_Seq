@@ -4,22 +4,27 @@ I- Liste des fichiers
 
 Analyse_kmer.R
 config.txt
-differential_expression.R
+differential_gene_expression.R
+differential_transcript_expression.R
 legend_image.py
 PipelineNGS.py
 README.md
-recup_info.py
 recup_nom_gene.R
-removeDecimal.py
-sleuth.R
 
 II- Description
 
 Ce programme permet de réaliser la plupart des étapes nécessaires à l'analyses de données de RNA-seq.
 
+a-Méthode 1: à partir du génome
 Mapping avec le logiciel STAR
-Comptage des reads par gènes avec Featurecounts
+Comptage des reads par gènes et par transcripts avec RSEM
 Analyse de l'expression différentielle avec le package bioconductor DESeq2
+Enrichissement, détection de pathways
+
+b-Méthode 2: à partir du transcriptome
+
+Mapping avec le logiciel Salmon
+Analyse de l'expression différentielle avec le package bioconductor DESeq2, via importation avec tximport
 Enrichissement, détection de pathways
 
 
@@ -79,7 +84,7 @@ a- Création des répertoires pour stocker les fichiers de sorties de chaque ét
 Les noms des répertoires propres à chaque échantillons sont basés sur les mêmes noms que ceux de leur fichier fastq respectif.
 
 
-b- Analyses des kmers (supprimé?)
+b- Analyses des kmers 
 
 Un premier arbre de classification des données est réalisé, à partir des outils de la librairie SeqTools (R).
 Cet arbre se fait par l'analyse des kmers des fichiers fastq, et ne nécessite donc pas un mapping des échantillons au préalable.
@@ -105,8 +110,8 @@ d- featurecounts
 INPUT: fichiers .bam pour chaque échantillons
 
 OUTPUT:
-un tableu de comptage de reads pour chaque gene_id pour chaque échantillon, présent dans chaque répertoire
-Un tableau regroupant tous les différents comptages: allcounts.txt 
+un tableau de comptage de reads pour chaque gene_id pour chaque échantillon, présent dans chaque répertoire
+
 
 
 e-Expression différentielle, Annotations
@@ -121,7 +126,7 @@ IV- Lancement rapide
 
 Pour lancer le programme avec toutes les étapes, lancer la commande ci-dessous dans le terminal
 
-python PipelineNGS.py -i DATA -o OUTPUT -s all -c config.txt
+python PipelineNGS.py -i DATA -o OUTPUT -s {salmon;star) -c config.txt
 
 
 
@@ -129,8 +134,6 @@ python PipelineNGS.py -i DATA -o OUTPUT -s all -c config.txt
 **Requierement**
 
 -STAR (Dobin A, Davis CA, Schlesinger F, Drenkow J, Zaleski C, Jha S, Batut P, Chaisson M, Gingeras TR. STAR: ultrafast universal RNA-seq aligner. Bioinformatics. 2013;29:15–21. )
-
--featurecounts (Liao Y, Smyth GK and Shi W. featureCounts: an efficient general-purpose program for assigning sequence reads to genomic features. Bioinformatics, 30(7):923-30, 2014)
 
 -Salmon (Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods.)
 
